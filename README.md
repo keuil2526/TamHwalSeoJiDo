@@ -1,10 +1,10 @@
 Open Terminal and run
-'''text
+```text
 node server.js
-'''
+```
 Requirements : Node.js >=18
 
 Open in Browser
-'''text
+```text
 https://localhost:12345
-'''
+```
