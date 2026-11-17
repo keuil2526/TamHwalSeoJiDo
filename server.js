@@ -79,6 +79,8 @@ body{background:#f5f5f5}
 #tw .tw-bar .chip{height:auto;padding:4px 10px}
 #tw .sum{flex:1;font-size:12px;color:#666}
 #tw .cnt{font-size:13px;font-weight:700;min-width:40px;text-align:center;padding:2px 8px;border-radius:4px;background:#35948a;color:#fff}
+#tw .pp{font-size:14px;font-weight:600;color:#2a7a71}
+#tw .pc{font-size:10px;padding:1px 5px;margin-left:4px;border-radius:3px;background:#666;color:#fff;vertical-align:middle}
 
 #tw .grp{background:#f2f2f2;border-radius:6px;margin-bottom:7px;overflow:hidden}
 #tw .gh{display:flex;align-items:center;gap:8px;padding:13px 18px;font-size:17px;cursor:pointer;list-style:none;user-select:none}
@@ -109,12 +111,11 @@ body{background:#f5f5f5}
 #tw .det{border:1px solid #ddd;border-radius:6px;margin:6px 0 12px;overflow:hidden}
 #tw .dh{padding:9px 16px;background:#f2f2f2;font-size:14px;font-weight:500}
 
-/* 탐활서 항목: 기존 탐활서 확인 UI 사용 */
+/* 탐활서 항목: 기존 탐활서 확인 UI 사용, 2열 */
 #tw .tw-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px 16px 14px;background:#fff;border-top:1px solid #e5e5e5}
 #tw .tw-item{min-width:0}
-#tw .tw-item .table{width:100%}
+#tw .tw-item .table{width:100%;margin-bottom:0}
 @media(max-width:700px){#tw .tw-items{grid-template-columns:1fr}}
-#tw .tw-item .table{margin-bottom:0}
 #tw .pb{font-size:10px;padding:1px 5px;margin-left:4px;border-radius:3px;background:#35948a;color:#fff;vertical-align:middle}
 #tw .pb.we{background:#3b6fb6}
 #tw .tw-empty{padding:12px 16px;background:#fff;font-size:12px;color:#888}
@@ -164,7 +165,7 @@ body{background:#f5f5f5}
   </div>
 </nav>
 <main id="tw"><div class="tw-wrap"><div class="tw-card">
-<div class="ttl"><h1>탐활서 장소별 보기</h1><span id="timer"></span><a id="vw" class="vw" href="/map">지도 보기</a></div>
+<div class="ttl"><h1>📍 탐활서 장소별 보기</h1><span id="timer"></span><a id="vw" class="vw" href="/map">지도 보기</a></div>
 <p class="info">선택한 날짜부터 최대 100개까지 조회됩니다. 제출 마감은 매일 18:00입니다.</p>
 <input id="q" placeholder="학번, 이름, 지도교사, 활동내용 검색">
 <div class="filters">
@@ -238,6 +239,13 @@ function periods(x){
   if(!p.includes(3)&&(x.c+x.m+x.p).includes('3면학'))p.push(3);
   return p.sort((a,b)=>a-b);
 }
+// 인원: 대표+참가학생에서 학번(3~4자리+이름) 중복 없이, 학번이 없으면 쉼표로 나눈 수
+function heads(x){
+  const ids=[...new Set((x.r+','+x.m).match(/\d{3,4}(?=\s*[가-힣])/g)||[])];
+  if(ids.length)return{ids,n:ids.length};
+  return{ids:[],n:x.m.split(',').map(s=>s.trim()).filter(Boolean).length||(x.r?1:0)};
+}
+const ppl=it=>{const s=new Set();let k=0;it.forEach(x=>x.ids.length?x.ids.forEach(i=>s.add(i)):k+=x.n);return s.size+k};
 
 const view=location.pathname==='/map'?'map':'list';
 const $=id=>document.getElementById(id);
@@ -280,7 +288,7 @@ async function load(start){
       if(el&&el.classList.contains('table-ago'))ago=el.textContent.trim();
       const x={p:o['활동장소'],h:o['활동시간']||'',c:o['활동내용']||'',r:o['대표학생']||'',m:o['참가학생']||'',t:o['지도교사']||'',s:o['지원']||''};
       const id=[x.p,x.h,x.c,x.r,x.m,x.t].join('|');
-      if(!map.has(id))map.set(id,Object.assign(x,{ago,rooms:classify(x.p),per:periods(x),d:[]}));
+      if(!map.has(id))map.set(id,Object.assign(x,{ago,rooms:classify(x.p),per:periods(x),d:[]},heads(x)));
       const d=o['활동날짜']||'';
       if(d&&!map.get(id).d.includes(d))map.get(id).d.push(d);
     });
@@ -292,7 +300,7 @@ async function load(start){
 
 // 기존 탐활서 확인 페이지와 같은 마크업
 const tr=(k,v,st)=>'<tr><th>'+k+'</th><td><p style="margin: 0;'+(st||'')+'">'+esc(v)+'</p></td></tr>';
-const item=x=>'<div class="tw-item"><p class="table-ago">'+esc(x.ago)+
+const item=x=>'<div class="tw-item"><p class="table-ago">'+esc(x.ago)+'<span class="pc">'+x.n+'명</span>'+
   x.per.map(i=>'<span class="pb'+(i>3?' we':'')+'">'+esc(PERIODS[i][0])+'</span>').join('')+'</p>'+
   '<table class="table"><tbody>'+
   tr('활동날짜',day||x.d.join(', '))+
@@ -309,7 +317,7 @@ function listView(g,q){
   const order=Object.keys(g).filter(r=>r!=='기타').sort((a,b)=>g[b].length-g[a].length);
   if(g['기타'])order.push('기타');
   let h=order.map(r=>'<details class="grp'+(r==='기타'?' etc':'')+'"'+(q?' open':'')+'>'+
-    '<summary class="gh"><span class="nm">'+esc(r)+'</span><span class="cnt">'+g[r].length+'건</span></summary>'+
+    '<summary class="gh"><span class="nm">'+esc(r)+'</span><span class="pp">'+ppl(g[r])+'명</span><span class="cnt">'+g[r].length+'건</span></summary>'+
     '<div class="tw-items">'+g[r].map(item).join('')+'</div></details>').join('');
   const empty=Object.keys(ALL).filter(r=>!g[r]);
   if(!q&&empty.length)h+='<details class="grp empty"><summary class="gh"><span class="nm">비어 있는 장소</span><span class="cnt">'+empty.length+'곳</span></summary><div class="none">'+empty.map(esc).join(' · ')+'</div></details>';
@@ -318,19 +326,19 @@ function listView(g,q){
 
 function mapView(g){
   const extra=Object.keys(g).filter(r=>!ALL[r]);
-  const bcnt={};
-  Object.keys(g).forEach(r=>{const b=ALL[r]||'기타';bcnt[b]=(bcnt[b]||0)+g[r].length});
+  const bit={};
+  Object.keys(g).forEach(r=>{const b=ALL[r]||'기타';bit[b]=bit[b]||new Set();g[r].forEach(x=>bit[b].add(x))});
   if(bld==='기타'&&!extra.length)bld=LAYOUT[0].b;
-  const tab=(k,lb)=>'<button class="tab'+(bld===k?' on':'')+'" data-b="'+esc(k)+'">'+esc(lb)+'<span>'+(bcnt[k]||0)+'건</span></button>';
+  const tab=(k,lb)=>'<button class="tab'+(bld===k?' on':'')+'" data-b="'+esc(k)+'">'+esc(lb)+'<span>'+(bit[k]?bit[k].size:0)+'건 · '+(bit[k]?ppl([...bit[k]]):0)+'명</span></button>';
   const cell=nm=>{
     if(nm[0]==='*')return'<div class="cell off">'+esc(nm.slice(1))+'</div>';
     const c=g[nm]?g[nm].length:0;
-    return'<button class="cell'+(c?' has':'')+(sel===nm?' sel':'')+'" data-room="'+esc(nm)+'">'+esc(nm)+(c?'<span class="cnt">'+c+'건</span>':'')+'</button>';
+    return'<button class="cell'+(c?' has':'')+(sel===nm?' sel':'')+'" data-room="'+esc(nm)+'">'+esc(nm)+(c?'<span class="cnt">'+c+'건 · '+ppl(g[nm])+'명</span>':'')+'</button>';
   };
   const detail=nm=>{
     const it=g[nm]||[];
-    return'<div class="det"><div class="dh">'+esc(nm)+' · '+it.length+'건</div>'+(it.length?'<div class="tw-items">'+it.map(item).join('')+'</div>':'<div class="tw-empty">탐활서 없음</div>')+'</div>';
-	};
+    return'<div class="det"><div class="dh">'+esc(nm)+' · '+it.length+'건 · '+ppl(it)+'명</div>'+(it.length?'<div class="tw-items">'+it.map(item).join('')+'</div>':'<div class="tw-empty">탐활서 없음</div>')+'</div>';
+  };
   let h='<div class="tabs">'+LAYOUT.map(B=>tab(B.b,B.b)).join('')+(extra.length?tab('기타','배치도 밖'):'')+'</div>';
   if(bld==='기타'){
     h+='<div class="rowx wrap">'+extra.map(cell).join('')+'</div>';
@@ -345,15 +353,15 @@ function mapView(g){
 }
 
 function render(){
-  const q=$('q').value.trim().toLowerCase(),g={};let n=0;
+  const q=$('q').value.trim().toLowerCase(),g={},hit=[];let n=0;
   data.forEach(x=>{
     if(day&&!x.d.includes(day))return;
     if(per&&!x.per.includes(per))return;
     if(q&&!(x.p+x.rooms.join(' ')+x.c+x.r+x.m+x.t).toLowerCase().includes(q))return;
-    x.rooms.forEach(r=>(g[r]=g[r]||[]).push(x));n++;
+    x.rooms.forEach(r=>(g[r]=g[r]||[]).push(x));n++;hit.push(x);
   });
   $('all').classList.toggle('on',!day);
-  $('sum').textContent=(day?day:loaded+' 이후 전체')+' · 사용 중 '+Object.keys(g).length+'곳 · 탐활서 '+n+'건';
+  $('sum').textContent=(day?day:loaded+' 이후 전체')+' · 사용 중 '+Object.keys(g).length+'곳 · 탐활서 '+n+'건 · '+ppl(hit)+'명';
   $('out').innerHTML=view==='map'?mapView(g):listView(g,q);
   $('tg').textContent='모두 펼치기';
 }
