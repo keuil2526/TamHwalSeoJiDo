@@ -185,28 +185,30 @@ const LAYOUT=[
       ['학생회실','무한상상실','*3학년 연구실','*수학 연구실']]},
     {f:'3층',rows:[['2-1 교실','2-2 교실','2-3 교실','2-4 교실','*역사관(광장)','*2학년 연구실','독서토론실','도서실','*면학실']]},
     {f:'2층',rows:[['1-1 교실','1-2 교실','1-3 교실','1-4 교실','*역사관(광장)','*1학년 연구실','*교감실','*교무실','*입학담당관실','*방송실','*사감실','*면학실']]},
-    {f:'1층',rows:[['*보건실','*교직원 협의실','*교장실','*행정실','*중앙현관','*행정실장실','AI실','코딩실','멀티실','*급식실']]}
+    {f:'1층',rows:[['*보건실','*교직원 협의실','*교장실','*행정실','*중앙현관','*행정실장실','AI실','코딩실','*급식실']]}
   ]},
   {b:'창의관(별관)',floors:[
     {f:'옥상',rows:[['*옥상 공간','천문대']]},
     {f:'4층',rows:[['실험기자재실'],['화학 R&E실','*화학연구실','분석기기실2','*준비실','화학 실험실']]},
     {f:'3층',rows:[['배양실'],['생명 R&E실','*생명과학 연구실','전자현미경실','*준비실','생명 실험실']]},
-    {f:'2층',rows:[['*학부모상담실','수학 1실','수학 2실','풍동실험실'],['물리 R&E실','*물리연구실','*심화기자재','*준비실','물리 실험실']]},
+    {f:'2층',rows:[['*학부모상담실','수학 1실','수학 2실','풍동실험실'],['물리 R&E실','*물리연구실','SEM실','*준비실','물리 실험실']]},
     {f:'1층',rows:[['시청각실','박편제작실'],['지구 R&E실','*지구과학 연구실','글로브실','*준비실','지구 실험실']]}
   ]},
   {b:'성취관',floors:[
     {f:'2·3층',rows:[['다목적 체육관 강당','*체육연구실']]},
-    {f:'1층',rows:[['탁구실','체력단련실','골프연습실'],['요가실','*학생부 연구실','미술실','음악실','피아노실','기악실']]}
+    {f:'1층',rows:[['미네르바토론교실','체력단련실','골프연습실'],['요가실','*학생부 연구실','미술실','음악실','가창실','기악실']]}
   ]}
 ];
 const ALL={};
 LAYOUT.forEach(B=>B.floors.forEach(F=>F.rows.forEach(r=>r.forEach(n=>{if(n[0]!=='*')ALL[n]=B.b}))));
+// [표기에 포함된 말, 분류할 방] — 위에서부터 먼저 맞는 것 적용
 const KEYS=[['천문대','천문대'],['풍동','풍동실험실'],['박편','박편제작실'],['글로브','글로브실'],['시청각','시청각실'],
   ['전자현미경','전자현미경실'],['분석기기','분석기기실2'],['배양','배양실'],['실험기자재','실험기자재실'],
-  ['코딩','코딩실'],['정보','코딩실'],['멀티','멀티실'],['어학','어학실'],['면학','면학실'],
-  ['학생회','학생회실'],['무한상상','무한상상실'],['독서토론','독서토론실'],['도서','도서실'],
-  ['체력단련','체력단련실'],['탁구','탁구실'],['골프','골프연습실'],['요가','요가실'],
-  ['미술','미술실'],['피아노','피아노실'],['기악','기악실'],['음악','음악실'],['강당','다목적 체육관 강당'],['체육관','다목적 체육관 강당']];
+  ['심화기자재','SEM실'],['SEM','SEM실'],
+  ['코딩','코딩실'],['정보','코딩실'],['어학','어학실'],['면학','면학실'],
+  ['학생회','학생회실'],['무한상상','무한상상실'],['독서토론','독서토론실'],['미네르바','미네르바토론교실'],['탁구','미네르바토론교실'],['도서','도서실'],
+  ['체력단련','체력단련실'],['골프','골프연습실'],['요가','요가실'],
+  ['미술','미술실'],['가창','가창실'],['피아노','가창실'],['기악','기악실'],['음악','음악실'],['강당','다목적 체육관 강당'],['체육관','다목적 체육관 강당']];
 // [이름, 시작 시각(활동시간에서 찾는 값), 표시 시간]
 const PERIODS={
   1:['1면학','19:10','19:10~20:20'],
@@ -231,7 +233,9 @@ function one(p){
   return'기타';
 }
 function classify(p){
-  const r=[...new Set(p.replace(/\([^)]*\)/g,'').split(/[,\/]/).map(s=>s.trim()).filter(Boolean).map(one))];
+  p=p.replace(/\([^)]*\)/g,'')
+     .replace(/수학\s*((?:[1-3]\s*[,·\/&및]\s*)+[1-3])\s*실/g,(m,ns)=>ns.match(/[1-3]/g).map(n=>'수학 '+n+'실').join(','));
+  const r=[...new Set(p.split(/[,\/]/).map(s=>s.trim()).filter(Boolean).map(one))];
   return r.length?r:['기타'];
 }
 function periods(x){
@@ -246,6 +250,7 @@ function heads(x){
   return{ids:[],n:x.m.split(',').map(s=>s.trim()).filter(Boolean).length||(x.r?1:0)};
 }
 const ppl=it=>{const s=new Set();let k=0;it.forEach(x=>x.ids.length?x.ids.forEach(i=>s.add(i)):k+=x.n);return s.size+k};
+const byPeople=(a,b)=>b.n-a.n;
 
 const view=location.pathname==='/map'?'map':'list';
 const $=id=>document.getElementById(id);
@@ -314,18 +319,20 @@ const item=x=>'<div class="tw-item"><p class="table-ago">'+esc(x.ago)+'<span cla
   '</tbody></table></div>';
 
 function listView(g,q){
-  const order=Object.keys(g).filter(r=>r!=='기타').sort((a,b)=>g[b].length-g[a].length);
+  const pc={};
+  Object.keys(g).forEach(r=>pc[r]=ppl(g[r]));
+  const order=Object.keys(g).filter(r=>r!=='기타').sort((a,b)=>pc[b]-pc[a]||g[b].length-g[a].length);
   if(g['기타'])order.push('기타');
   let h=order.map(r=>'<details class="grp'+(r==='기타'?' etc':'')+'"'+(q?' open':'')+'>'+
-    '<summary class="gh"><span class="nm">'+esc(r)+'</span><span class="pp">'+ppl(g[r])+'명</span><span class="cnt">'+g[r].length+'건</span></summary>'+
-    '<div class="tw-items">'+g[r].map(item).join('')+'</div></details>').join('');
+    '<summary class="gh"><span class="nm">'+esc(r)+'</span><span class="pp">'+pc[r]+'명</span><span class="cnt">'+g[r].length+'건</span></summary>'+
+    '<div class="tw-items">'+[...g[r]].sort(byPeople).map(item).join('')+'</div></details>').join('');
   const empty=Object.keys(ALL).filter(r=>!g[r]);
   if(!q&&empty.length)h+='<details class="grp empty"><summary class="gh"><span class="nm">비어 있는 장소</span><span class="cnt">'+empty.length+'곳</span></summary><div class="none">'+empty.map(esc).join(' · ')+'</div></details>';
   return h;
 }
 
 function mapView(g){
-  const extra=Object.keys(g).filter(r=>!ALL[r]);
+  const extra=Object.keys(g).filter(r=>!ALL[r]).sort((a,b)=>ppl(g[b])-ppl(g[a]));
   const bit={};
   Object.keys(g).forEach(r=>{const b=ALL[r]||'기타';bit[b]=bit[b]||new Set();g[r].forEach(x=>bit[b].add(x))});
   if(bld==='기타'&&!extra.length)bld=LAYOUT[0].b;
@@ -336,7 +343,7 @@ function mapView(g){
     return'<button class="cell'+(c?' has':'')+(sel===nm?' sel':'')+'" data-room="'+esc(nm)+'">'+esc(nm)+(c?'<span class="cnt">'+c+'건 · '+ppl(g[nm])+'명</span>':'')+'</button>';
   };
   const detail=nm=>{
-    const it=g[nm]||[];
+    const it=[...(g[nm]||[])].sort(byPeople);
     return'<div class="det"><div class="dh">'+esc(nm)+' · '+it.length+'건 · '+ppl(it)+'명</div>'+(it.length?'<div class="tw-items">'+it.map(item).join('')+'</div>':'<div class="tw-empty">탐활서 없음</div>')+'</div>';
   };
   let h='<div class="tabs">'+LAYOUT.map(B=>tab(B.b,B.b)).join('')+(extra.length?tab('기타','배치도 밖'):'')+'</div>';
