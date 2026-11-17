@@ -164,7 +164,7 @@ body{background:#f5f5f5}
   </div>
 </nav>
 <main id="tw"><div class="tw-wrap"><div class="tw-card">
-<div class="ttl"><h1>📍 탐활서 장소별 보기</h1><span id="timer"></span><a id="vw" class="vw" href="/map">지도 보기</a></div>
+<div class="ttl"><h1>탐활서 장소별 보기</h1><span id="timer"></span><a id="vw" class="vw" href="/map">지도 보기</a></div>
 <p class="info">선택한 날짜부터 최대 100개까지 조회됩니다. 제출 마감은 매일 18:00입니다.</p>
 <input id="q" placeholder="학번, 이름, 지도교사, 활동내용 검색">
 <div class="filters">
